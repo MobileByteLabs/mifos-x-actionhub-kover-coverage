@@ -1,0 +1,83 @@
+name: 'KMP Kover Coverage Floor'
+description: 'Run Kover aggregated XML report and enforce per-module line-coverage floors with dynamic module discovery.'
+author: 'MobileByteLabs'
+branding:
+  icon: 'shield'
+  color: 'green'
+
+inputs:
+  java-version:
+    description: 'JDK version to set up before running Gradle.'
+    required: false
+    default: '17'
+  java-distribution:
+    description: 'JDK distribution (temurin, zulu, etc.).'
+    required: false
+    default: 'temurin'
+  report-task:
+    description: 'Gradle task that produces the per-module kover XML reports.'
+    required: false
+    default: 'koverXmlReport'
+  gradle-args:
+    description: 'Extra Gradle args appended to the report task invocation.'
+    required: false
+    default: '--continue --stacktrace'
+  floor-file:
+    description: 'Path (relative to repo root) of the per-module floor YAML.'
+    required: false
+    default: '.kover-floor.yml'
+  default-floor:
+    description: 'Line-coverage floor (%) for any module not listed in the floor file.'
+    required: false
+    default: '0'
+  upload-html-report:
+    description: 'Whether to upload the aggregated HTML coverage report as an artifact.'
+    required: false
+    default: 'true'
+  html-report-path:
+    description: 'Path of the aggregated HTML report directory (project-specific override).'
+    required: false
+    default: 'build/reports/kover/html'
+  artifact-retention-days:
+    description: 'Retention in days for the uploaded HTML coverage artifact.'
+    required: false
+    default: '14'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up JDK ${{ inputs.java-version }}
+      uses: actions/setup-java@v4
+      with:
+        distribution: ${{ inputs.java-distribution }}
+        java-version: ${{ inputs.java-version }}
+
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        cache-read-only: ${{ github.ref != 'refs/heads/dev' && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
+
+    - name: Run Kover aggregated XML report
+      # `--continue` lets us harvest partial coverage when a downstream
+      # module's compile is broken; the checker treats missing reports for
+      # listed modules above default-floor as hard failures, so silent-skip
+      # is still caught.
+      shell: bash
+      run: ./gradlew ${{ inputs.report-task }} ${{ inputs.gradle-args }}
+      continue-on-error: true
+
+    - name: Check per-module coverage floor
+      shell: bash
+      run: |
+        python3 "${{ github.action_path }}/scripts/check-coverage-floor.py" \
+          --floor-file "${{ inputs.floor-file }}" \
+          --default-floor "${{ inputs.default-floor }}"
+
+    - name: Upload aggregated HTML report
+      if: ${{ always() && inputs.upload-html-report == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: kover-html-report
+        path: ${{ inputs.html-report-path }}
+        if-no-files-found: ignore
+        retention-days: ${{ inputs.artifact-retention-days }}
