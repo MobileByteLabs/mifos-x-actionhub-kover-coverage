@@ -1,0 +1,20 @@
+# Per-module line-coverage floors for the kover coverage gate.
+#
+# Read by `MobileByteLabs/mifos-x-actionhub-kover-coverage` at workflow time.
+# Only list modules with explicit, non-default floors — every other discovered
+# module uses the `default-floor` workflow input.
+#
+# Floors should only ratchet UPWARD over time. Lowering a floor in a PR is
+# allowed but should carry an explicit justification in the PR description
+# (the action doesn't reject lowering — that's a review-time signal).
+#
+# Format: <gradle-path>: <minimum-line-percentage>
+
+floors:
+  # Example: a module that's been tested up to 90% — pin it there so future
+  # PRs can't silently regress it. Drop this entry to let the module fall
+  # back to the workflow's default-floor.
+  ":core-base:store": 90
+
+  # Add additional explicit floors here as Phase-9-style ratchet PRs land.
+  # ":feature:crypto": 95

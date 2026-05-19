@@ -1,0 +1,37 @@
+# Drop-in consumer workflow stub.
+#
+# Copy this to `.github/workflows/test-coverage.yml` in any KMP / multi-module
+# Kotlin project that uses Kover. The reusable workflow handles all the
+# heavy lifting; this file just decides WHEN to run and WHAT default floor
+# to enforce.
+
+name: Test Coverage Floor
+
+on:
+  pull_request:
+    paths:
+      - '**/*.kt'
+      - '**/*.kts'
+      - '.kover-floor.yml'
+      - 'build-logic/**'
+      - '.github/workflows/test-coverage.yml'
+  push:
+    branches:
+      - main
+      - dev
+
+concurrency:
+  group: test-coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    uses: MobileByteLabs/mifos-x-actionhub-kover-coverage/.github/workflows/coverage.yml@v1
+    with:
+      default-floor: 0
+      # Optional overrides (defaults shown):
+      # java-version: '17'
+      # report-task: 'koverXmlReport'
+      # gradle-args: '--continue --stacktrace'
+      # floor-file: '.kover-floor.yml'
+      # upload-html-report: true
