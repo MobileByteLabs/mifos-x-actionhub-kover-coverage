@@ -46,7 +46,7 @@ on:
 
 jobs:
   coverage:
-    runs-on: ubuntu-26.04
+    runs-on: ${{ vars.CI_RUNNER_LINUX || 'ubuntu-26.04' }}
     steps:
       - uses: actions/checkout@v4
       - uses: MobileByteLabs/mifos-x-actionhub-kover-coverage@v1
